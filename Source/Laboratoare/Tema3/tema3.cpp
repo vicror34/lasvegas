@@ -8,7 +8,7 @@
 
 using namespace std;
 
-tema3::tema3()
+tema3::tema3() : roadGen((MAX_X + MAX_Y) / 4, {MAX_X, MAX_Y})
 {
 }
 
@@ -16,247 +16,10 @@ tema3::~tema3()
 {
 }
 
-void tema3::GenerateIntersection() {
-	int count = 0;
-	while (count != (maxX + maxY) / 2) {
-		int x = (rand() % maxX * 2) - maxX;
-		int y = (rand() % maxY * 2) - maxY;
-
-		if (IntersectionPos.size() == 0) {
-			IntersectionPos.push_back(glm::vec3(x, 0, y));
-			continue;
-		}
-		bool valid = true;
-
-		for (auto pos : IntersectionPos) {
-			if (abs(pos[0] - x) < 5 &&
-				abs(pos[2] - y) < 5) {
-				valid = false;
-				break;
-			}
-		}
-
-		if (valid) {
-			count++;
-			IntersectionPos.push_back(glm::vec3(x, 0, y));
-		}
-
-	}
-
-}
-int facti(int n) {
-	int factorial = 1;
-	for (int i = 1; i <= n; ++i)
-	{
-		factorial *= i;
-	}
-
-	return factorial;
-}
-// Creating shortcut for an integer pair 
-typedef  pair<int, int> iPair;
-
-// Structure to represent a graph 
-struct Graphi
-{
-	int V, E;
-	vector< pair<int, iPair> > edges;
-
-	// Constructor 
-	Graphi(int V, int E)
-	{
-		this->V = V;
-		this->E = E;
-	}
-
-	// Utility function to add an edge 
-	void addEdge(int u, int v, int w)
-	{
-		edges.push_back({ w, {u, v} });
-	}
-
-	// Function to find MST using Kruskal's 
-	// MST algorithm 
-	int kruskalMST(const vector<glm::vec3> &iPos, vector<Mesh*> *roads, tema3 context);
-};
-
-// To represent Disjoint Sets 
-struct DisjointSets
-{
-	int *parent, *rnk;
-	int n;
-
-	// Constructor. 
-	DisjointSets(int n)
-	{
-		// Allocate memory 
-		this->n = n;
-		parent = new int[n + 1];
-		rnk = new int[n + 1];
-
-		// Initially, all vertices are in 
-		// different sets and have rank 0. 
-		for (int i = 0; i <= n; i++)
-		{
-			rnk[i] = 0;
-
-			//every element is parent of itself 
-			parent[i] = i;
-		}
-	}
-
-	// Find the parent of a node 'u' 
-	// Path Compression 
-	int find(int u)
-	{
-		/* Make the parent of the nodes in the path
-		   from u--> parent[u] point to parent[u] */
-		if (u != parent[u])
-			parent[u] = find(parent[u]);
-		return parent[u];
-	}
-
-	// Union by rank 
-	void merge(int x, int y)
-	{
-		x = find(x), y = find(y);
-
-		/* Make tree with smaller height
-		   a subtree of the other tree  */
-		if (rnk[x] > rnk[y])
-			parent[y] = x;
-		else // If rnk[x] <= rnk[y] 
-			parent[x] = y;
-
-		if (rnk[x] == rnk[y])
-			rnk[y]++;
-	}
-};
-
-/* Functions returns weight of the MST*/
-
-int Graphi::kruskalMST(const vector<glm::vec3> &iPos, vector<Mesh*> *roads, tema3 context)
-{
-	int mst_wt = 0; // Initialize result 
-
-	// Sort edges in increasing order on basis of cost 
-	sort(edges.begin(), edges.end());
-
-	// Create disjoint sets 
-	DisjointSets ds(V);
-
-	// Iterate through all sorted edges 
-	vector< pair<int, iPair> >::iterator it;
-	for (it = edges.begin(); it != edges.end(); it++)
-	{
-		int u = it->second.first;
-		int v = it->second.second;
-
-		int set_u = ds.find(u);
-		int set_v = ds.find(v);
-
-		// Check if the selected edge is creating 
-		// a cycle or not (Cycle is created if u 
-		// and v belong to same set) 
-		if (set_u != set_v)
-		{
-			// Current edge will be in the MST 
-			// so print it 
-			cout << u << " " << v << endl;
-			glm::vec3 r = iPos[u] - iPos[v];
-			glm::vec3 frd = glm::normalize(glm::cross(r, glm::vec3(0, 1, 0))) * 0.5f + iPos[u];
-			glm::vec3 frs = glm::normalize(glm::cross(r, glm::vec3(0, -1, 0))) * 0.5f + iPos[u];
-			glm::vec3 srs = glm::normalize(glm::cross(r, glm::vec3(0, 1, 0))) * 0.5f + iPos[v];
-			glm::vec3 srd = glm::normalize(glm::cross(r, glm::vec3(0, -1, 0))) * 0.5f + iPos[v];
-
-			float length = glm::length(r);
-
-			vector<VertexFormat> vertices
-			{
-				VertexFormat(frs, glm::vec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec2(0, 0)),
-				VertexFormat(frd, glm::vec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec2(0, 1)),
-				VertexFormat(srd, glm::vec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec2(length, 0)),
-				VertexFormat(srs, glm::vec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec2(length, 1))
-			};
-			vector<unsigned short> indices
-			{
-				0, 1, 2, 2, 1, 3,
-			};
-			roads->push_back(context.CreateMesh("road", vertices, indices));
-
-			// Update MST weight 
-			mst_wt += it->first;
-
-			// Merge two sets 
-			ds.merge(set_u, set_v);
-		}
-	}
-
-	return mst_wt;
-
-
-}
-
-void tema3::go(int offset, int k) {
-	if (k == 0) {
-		for (int i = 0; i < combination.size(); ++i) { 
-			cout << combination[i] << " "; 
-			combroads.push_back(combination[i]);
-		}
-		return;
-	}
-	for (int i = offset; i <= people.size() - k; ++i) {
-		combination.push_back(people[i]);
-		go(i + 1, k - 1);
-		combination.pop_back();
-	}
-}
-
 void tema3::Init()
 {
-	GenerateIntersection();
 
-	int V = IntersectionPos.size();
-	long int E = V * (V - 1) / 2;
-	Graphi g(V, E);
-	
-	//g.addEdge(i, i, V - i);
-	for (int i = 0; i < V; ++i) { people.push_back(i + 1); }
-	go(0, 2);
-	for (int i = 0; i < combroads.size(); i += 2) {
-		//cout << combroads[i] << " " << combroads[i + 1] << endl;
-		g.addEdge(combroads[i]-1, combroads[i + 1] -1, glm::distance(IntersectionPos[combroads[i] -1], IntersectionPos[combroads[i + 1] -1]));
-	}
-	g.kruskalMST(IntersectionPos, &roads, *this);
-	//for (auto frp : IntersectionPos) {
-	//	for (auto srp : IntersectionPos) {
-	//		if (srp != frp) {
-
-	//			glm::vec3 r = srp - frp;
-	//			glm::vec3 frd = glm::normalize(glm::cross(r, glm::vec3(0, 1, 0))) * 0.5f + frp;
-	//			glm::vec3 frs = glm::normalize(glm::cross(r, glm::vec3(0, -1, 0))) * 0.5f + frp;
-	//			glm::vec3 srs = glm::normalize(glm::cross(r, glm::vec3(0, 1, 0))) * 0.5f + srp;
-	//			glm::vec3 srd = glm::normalize(glm::cross(r, glm::vec3(0, -1, 0))) * 0.5f + srp;
-
-	//			float length = glm::length(r);
-
-	//			vector<VertexFormat> vertices
-	//			{
-	//				VertexFormat(frs, glm::vec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec2(0, 0)),
-	//				VertexFormat(frd, glm::vec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec2(0, 1)),
-	//				VertexFormat(srd, glm::vec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec2(length, 0)),
-	//				VertexFormat(srs, glm::vec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec2(length, 1))
-	//			};
-	//			vector<unsigned short> indices
-	//			{
-	//				0, 1, 2, 2, 1, 3,
-	//			};
-	//			roads.push_back(CreateMesh("road", vertices, indices));
-	//			//meshes["plane"] = CreateMesh("plane", vertices, indices);
-
-	//		}
-	//	}
-	//}
+	roadGen.generate();
 
 	const string textureLoc = "Source/Laboratoare/Tema2/Textures/";
 	const string textureLoc2 = "Source/Laboratoare/Laborator9/Textures/";
@@ -377,21 +140,11 @@ void tema3::FrameStart()
 void tema3::Update(float deltaTimeSeconds)
 {
 
-	for (auto rp : roads) {
+	for (auto rp: roadGen.getRoads()) {
 		glm::mat4 modelMatrix = glm::mat4(1);
-	
 		RenderSimpleMesh(rp, shaders["ShaderLab6"], modelMatrix, mapTextures["crate"]);
 	}
 
-
-	//modelMatrix = glm::translate(modelMatrix, srd);
-	/*for (auto rp = IntersectionPos.cbegin(); rp != --IntersectionPos.cend(); ++rp) {
-		glm::vec3 r = *(rp + 1) - *rp;
-		glm::mat4 modelMatrix = glm::mat4(1);
-		modelMatrix = glm::translate(modelMatrix, *rp);
-		RenderSimpleMesh(meshes["box"], shaders["ShaderLab6"], modelMatrix, mapTextures["crate"]);
-	}*/
-	
 }
 
 void tema3::FrameEnd()

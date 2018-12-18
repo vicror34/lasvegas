@@ -5,24 +5,28 @@
 #include <Component/Camera/Camera.h>
 #include <Laboratoare/Tema3/LabCamera.h>
 #include "BaseForm.h"
-#include "kruskal.cpp"
-
-
-struct Player {
-	int color;
-	bool ball8;
-	int score;
-};
+#include <Laboratoare\Tema3\RoadGenerator.h>
 
 class tema3 : public SimpleScene
 {
 public:
+
 	tema3();
 	~tema3();
 
 	void Init() override;
 
 	Mesh * CreateMesh(const char * name, const std::vector<VertexFormat> &vertices, const std::vector<unsigned short> &indices);
+	const int MAX_X = 30, MAX_Y = 30;
+	RoadGenerator roadGen;
+
+
+	glm::mat4 projectionMatrix = glm::perspective(RADIANS(60), window->props.aspectRatio, 0.01f, 200.0f);
+	std::vector<glm::vec3> IntersectionPos;
+	std::unordered_map<std::string, Texture2D*> mapTextures;
+	std::vector<Mesh*> roads;
+	int textureMix = 0;
+
 private:
 	void FrameStart() override;
 	void Update(float deltaTimeSeconds) override;
@@ -38,22 +42,4 @@ private:
 	void OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) override;
 	void OnMouseScroll(int mouseX, int mouseY, int offsetX, int offsetY) override;
 	void OnWindowResize(int width, int height) override;
-	void GenerateIntersection();
-	void go(int offset, int k);
-	
-
-public:
-	//LabCamera::Camera2 * Camera;
-	glm::mat4 projectionMatrix = glm::perspective(RADIANS(60), window->props.aspectRatio, 0.01f, 200.0f);
-	std::vector<glm::vec3> IntersectionPos;
-	std::unordered_map<std::string, Texture2D*> mapTextures;
-	std::vector<Mesh*> roads;
-	int textureMix = 0;
-
-	vector<int> people;
-	vector<int> combination;
-	vector<int> combroads;
-
-	int maxX = 30;
-	int maxY = 30;
 };
